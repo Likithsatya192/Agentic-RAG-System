@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any
 from langchain_groq import ChatGroq
 from document_loader import DocumentLoader
-from rag_tools import RAGRetrievalTool, WebSearchTool
+from rag_tools import create_tools
 from agents import ResearchAgent, AnalysisAgent, WriterAgent
 from supervised_workflow import SupervisedRAGWorkflow
 from dotenv import load_dotenv
@@ -46,18 +46,14 @@ class AgenticRAGSystem:
             self.documents_directory
         )
         
-        tools = []
         if documents:
             self.vector_store = self.document_loader.create_vector_store(documents)
             print(f"Vector store created with {len(documents)} documents")
-            tools.append(RAGRetrievalTool(vector_store=self.vector_store))
         else:
             print("No documents found or loaded. Web search will be used if available.")
             self.vector_store = None
         
-        if self.tavily_api_key:
-            tools.append(WebSearchTool(tavily_api_key=self.tavily_api_key))
-        
+        tools = create_tools(vector_store=self.vector_store, tavily_api_key=self.tavily_api_key)
         if not tools:
             raise RuntimeError("No tools available: Please upload documents or set a Tavily API key for web search.")
         

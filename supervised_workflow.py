@@ -5,7 +5,10 @@ from pydantic import BaseModel
 import logging
 from agents import ResearchAgent, AnalysisAgent, WriterAgent
 import uuid
-
+from langchain_groq import ChatGroq
+import os
+from dotenv import load_dotenv
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -72,7 +75,7 @@ class SupervisedRAGWorkflow:
         
         research_result = self.research_agent.research(
             state.query, 
-            use_web=state.use_web_search
+            prefer_web=state.use_web_search
         )
         
         state.research_results = research_result["result"]

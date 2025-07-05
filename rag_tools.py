@@ -1,12 +1,19 @@
 from typing import List, Dict, Any, Optional
 from langchain.tools import BaseTool
 from langchain_community.vectorstores import FAISS
-try:
-    from langchain_tavily import TavilySearchResults  # New recommended import
-except ImportError:
-    from langchain_community.tools import TavilySearchResults  # Fallback for older versions
-from pydantic import BaseModel, Field
 import os
+import sys
+
+try:
+    from langchain_tavily import TavilySearch  # New recommended import
+    TAVILY_TOOL_CLASS = TavilySearch
+    print("Using TavilySearch from langchain_tavily.")
+except ImportError as e:
+    print("[WARNING] Could not import TavilySearch from langchain_tavily. Falling back to deprecated TavilySearchResults.", file=sys.stderr)
+    print(f"[WARNING] ImportError: {e}", file=sys.stderr)
+    from langchain_community.tools import TavilySearchResults  # Fallback for older versions
+    TAVILY_TOOL_CLASS = TavilySearchResults
+from pydantic import BaseModel, Field
 
 class RAGRetrievalTool(BaseTool):
     """Tool for retrieving information from local RAG system"""
@@ -57,11 +64,10 @@ class WebSearchTool(BaseTool):
     
     def __init__(self, tavily_api_key: str = os.getenv("TAVILY_API_KEY"), **kwargs):
         super().__init__(**kwargs)
-        # Avoid Pydantic field error by using object.__setattr__
-        object.__setattr__(self, "search_tool", TavilySearchResults(
-            api_key=tavily_api_key,
-            max_results=5
-        ) if tavily_api_key else None)
+        # Use the correct Tavily tool class
+        object.__setattr__(self, "search_tool", TAVILY_TOOL_CLASS(
+            api_key=tavily_api_key
+        ))
     
     def _run(self, query: str) -> str:
         """Perform web search"""

@@ -46,19 +46,20 @@ class AgenticRAGSystem:
             self.documents_directory
         )
         
+        tools = []
         if documents:
             self.vector_store = self.document_loader.create_vector_store(documents)
             print(f"Vector store created with {len(documents)} documents")
-        else:
-            print("No documents found or loaded")
-        
-        # Initialize tools
-        tools = []
-        if self.vector_store:
             tools.append(RAGRetrievalTool(vector_store=self.vector_store))
+        else:
+            print("No documents found or loaded. Web search will be used if available.")
+            self.vector_store = None
         
         if self.tavily_api_key:
             tools.append(WebSearchTool(tavily_api_key=self.tavily_api_key))
+        
+        if not tools:
+            raise RuntimeError("No tools available: Please upload documents or set a Tavily API key for web search.")
         
         # Initialize agents
         research_agent = ResearchAgent(self.llm, tools)
@@ -81,6 +82,8 @@ class AgenticRAGSystem:
         
         try:
             result = self.workflow.run(question)
+            if not result.get("final_output") and not result.get("research_results"):
+                return {"error": "No results found. Please upload documents or enable web search."}
             return result
         except Exception as e:
             return {"error": f"Query processing failed: {str(e)}"}
@@ -105,35 +108,3 @@ class AgenticRAGSystem:
             print(f"Added {len(new_documents)} new documents")
         else:
             print("No new documents found")
-
-if __name__ == "__main__":
-    # Configuration
-    DOCUMENTS_DIR = "documents"  # Directory containing PDF, DOC, TXT files
-    
-    # Initialize system
-    rag_system = AgenticRAGSystem(
-        documents_directory=DOCUMENTS_DIR,
-        groq_api_key=os.getenv("GROQ_API_KEY"),
-        tavily_api_key=os.getenv("TAVILY_API_KEY")
-    )
-    
-    # Example queries
-    queries = [
-        "What are the main findings in the research documents?",
-        "Summarize the key points about machine learning from the available documents",
-        "What recent developments in AI are mentioned in the documents?"
-    ]
-    
-    for query in queries:
-        print(f"\n{'='*50}")
-        print(f"Query: {query}")
-        print('='*50)
-        
-        result = rag_system.query(query)
-        
-        if "error" in result:
-            print(f"Error: {result['error']}")
-        else:
-            print(f"Final Output: {result['final_output']}")
-            print(f"Iterations: {result['iterations']}")
-            print(f"Used Web Search: {result['used_web_search']}")

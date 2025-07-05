@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Agentic RAG System</h1>
+        <form id="rag-form" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="documents" class="form-label">Upload Documents (PDF, DOCX, TXT)</label>
+                <input class="form-control" type="file" id="documents" name="documents" multiple accept=".pdf,.docx,.txt">
+            </div>
+            <div class="mb-3">
+                <label for="query" class="form-label">Enter your question</label>
+                <input type="text" class="form-control" id="query" name="query" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        <div id="result" class="mt-4" style="display:none;">
+            <h4>Result</h4>
+            <pre id="output"></pre>
+        </div>
+    </div>
+    <script>
+        document.getElementById('rag-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('output').textContent = 'Processing...';
+            fetch('/rag', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                let data;
+                try {
+                    data = await response.json();
+                } catch (err) {
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('output').textContent = 'Error: Invalid server response (not JSON).';
+                    return;
+                }
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('output').textContent = data.final_output || data.error || 'No result.';
+            })
+            .catch(err => {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('output').textContent = 'Error: ' + err;
+            });
+        });
+    </script>
+</body>
+</html> 
